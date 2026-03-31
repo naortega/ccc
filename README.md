@@ -6,7 +6,7 @@ Church by section number.
 ## Usage
 
 ```bash
-ccc <section_number>
+ccc <section_number|range>
 ```
 
 ## Dependencies
