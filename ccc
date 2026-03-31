@@ -1,0 +1,225 @@
+#!/usr/bin/env perl
+
+# Copyright (C) 2026 Nicolás Ortega Froysa <nicolas@ortegas.org> All rights reserved.
+# Author: Nicolás Ortega Froysa <nicolas@ortegas.org>
+#
+# This software is provided 'as-is', without any express or implied
+# warranty. In no event will the authors be held liable for any damages
+# arising from the use of this software.
+#
+# Permission is granted to anyone to use this software for any purpose,
+# including commercial applications, and to alter it and redistribute it
+# freely, subject to the following restrictions:
+#
+# 1. The origin of this software must not be misrepresented; you must not
+#    claim that you wrote the original software. If you use this software
+#    in a product, an acknowledgment in the product documentation would be
+#    appreciated but is not required.
+#
+# 2. Altered source versions must be plainly marked as such, and must not be
+#    misrepresented as being the original software.
+#
+# 3. This notice may not be removed or altered from any source
+#    distribution.
+
+use strict;
+use warnings;
+use LWP::UserAgent;
+use JSON::PP;
+use File::Spec;
+use File::HomeDir;
+use File::Path qw(make_path);
+
+my $section_num = shift or usage();
+
+if($section_num eq '--help' || $section_num eq '-h') {
+	usage();
+}
+
+unless($section_num =~ /^\d+$/) {
+	print STDERR "Error: Section number must be a positive integer\n";
+	exit 1;
+}
+
+my $cache_dir = get_xdg_cache_dir();
+make_path($cache_dir) unless -d $cache_dir;
+
+my $cache_file = File::Spec->catfile($cache_dir, 'section_map.json');
+
+my $section_map = load_cache($cache_file);
+my $section_info = $section_map->{$section_num};
+
+unless($section_info) {
+	print STDERR "Building cache of Catechism sections...\n";
+	$section_map = build_section_map($cache_file);
+	$section_info = $section_map->{$section_num};
+}
+
+unless($section_info) {
+	print STDERR "Error: Section $section_num not found in Catechism\n";
+	exit 1;
+}
+
+fetch_and_display_section($section_num, $section_info);
+
+sub usage {
+	print STDERR "Usage: ccc <section_number>\n";
+	exit 1;
+}
+
+sub load_cache {
+	my ($file) = @_;
+	if(-f $file) {
+		open my $fh, '<', $file or die "Cannot read cache: $!\n";
+		my $json_text = do { local $/; <$fh> };
+		close $fh;
+		return JSON::PP::decode_json($json_text);
+	}
+	return {};
+}
+
+sub save_cache {
+	my ($file, $data) = @_;
+	open my $fh, '>', $file or die "Cannot write cache: $!\n";
+	print $fh JSON::PP::encode_json($data);
+	close $fh;
+}
+
+sub build_section_map {
+	my ($cache_file) = @_;
+	my %section_map;
+
+	my $ua = LWP::UserAgent->new(timeout => 15);
+	my $base_url = 'https://www.vatican.va/archive/ENG0015';
+
+	print STDERR "Fetching Catechism sections...\n";
+
+	# Build list of all possible HTML files based on hex naming
+	# Files are named __P1.HTM, __P2.HTM... __P9.HTM, __PA.HTM... __PF.HTM, __P10.HTM, etc.
+	my @filenames;
+	for my $i (1..1000) {
+		my $hex = sprintf("%X", $i);
+		push @filenames, "__P$hex.HTM";
+	}
+
+	my $count = 0;
+	foreach my $filename (@filenames) {
+		my $url = "$base_url/$filename";
+		my $response = $ua->get($url);
+
+		unless($response->is_success) {
+			# Stop when we hit a 404 - we've scanned all files
+			last;
+		}
+
+		my $content = $response->content;
+
+		# Extract all section numbers
+		my @sections = extract_section_numbers($content);
+
+		foreach my $section (@sections) {
+			$section_map{$section} = $filename;
+			$count++;
+		}
+
+		# Print progress
+		print STDERR "." if(scalar(keys %section_map) % 50 == 0);
+	}
+
+	print STDERR "\n";
+	save_cache($cache_file, \%section_map);
+	print STDERR "Cache built with " . scalar(keys %section_map) . " sections\n";
+
+	return \%section_map;
+}
+
+sub extract_section_numbers {
+	my ($html) = @_;
+	my @sections;
+
+	# Look for section numbers that appear after a <p> tag
+	# Windows line endings (\r\n) are used in the HTML
+	# Example: <p class=MsoNormal>199\r\n&quot;I believe in God...
+	while ($html =~ /<p[^>]*>(\d{1,4})[\r\n]+/g) {
+		my $num = $1;
+		# Only capture numbers in the valid CCC range (1-2865)
+		push @sections, $num if $num >= 1 && $num <= 3000;
+	}
+
+	# Remove duplicates and return sorted
+	my %seen;
+	my @unique = grep { !$seen{$_}++ } @sections;
+	return sort {$a <=> $b} @unique;
+}
+
+sub fetch_and_display_section {
+	my ($section_num, $section_info) = @_;
+
+	my $ua = LWP::UserAgent->new(timeout => 10);
+	my $base_url = 'https://www.vatican.va/archive/ENG0015';
+	my $url = "$base_url/$section_info";
+
+	my $response = $ua->get($url);
+
+	unless($response->is_success) {
+		print STDERR "Error: Could not fetch section from Vatican\n";
+		exit 1;
+	}
+
+	my $content = $response->content;
+
+	# Extract the section content
+	my $section_content = extract_section_content($content, $section_num);
+
+	if($section_content) {
+		print $section_content;
+	} else {
+		print STDERR "Error: Could not parse section $section_num\n";
+		exit 1;
+	}
+}
+
+sub extract_section_content {
+	my ($html, $section_num) = @_;
+
+	# Convert HTML entities
+	$html =~ s/&quot;/"/g;
+	$html =~ s/&amp;/&/g;
+	$html =~ s/&lt;/</g;
+	$html =~ s/&gt;/>/g;
+	$html =~ s/&nbsp;/ /g;
+
+	# Remove HTML tags but keep structure
+	$html =~ s/<[^>]+>//g;
+
+	# Remove footnote reference numbers like [1], [2], etc
+	$html =~ s/\[\d+\]//g;
+
+	# Find the section by number
+	my $pattern = '\b' . quotemeta($section_num) . '\s+';
+
+	if($html =~ /$pattern(.+?)(?=\b\d{3,4}\s+|$)/s) {
+		my $content = $1;
+
+		# Clean up excess whitespace
+		$content =~ s/\s+/ /g;
+		$content =~ s/^\s+|\s+$//g;
+
+		# Add line breaks for readability
+		$content =~ s/([.!?])\s+(?=[A-Z])/\n\n/g;
+
+		return "\n[Section $section_num]\n\n" . $content . "\n";
+	}
+
+	return undef;
+}
+
+sub get_xdg_cache_dir {
+	my $xdg_cache_home = $ENV{XDG_CACHE_HOME};
+
+	if(!defined $xdg_cache_home || $xdg_cache_home eq '') {
+		$xdg_cache_home = File::Spec->catdir(File::HomeDir->my_home, '.cache');
+	}
+
+	return File::Spec->catdir($xdg_cache_home, 'ccc');
+}
