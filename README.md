@@ -19,6 +19,7 @@ distributions):
 - `File::Spec` - For file path operations
 - `File::HomeDir` - For home directory detection
 - `File::Path` - For creating cache directory structures
+- `Math::Base36` - For calculating the name of the HTML files
 
 ## Licensing
 

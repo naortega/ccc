@@ -29,6 +29,7 @@ use JSON::PP;
 use File::Spec;
 use File::HomeDir;
 use File::Path qw(make_path);
+use Math::Base36 ':all';
 
 my $arg = shift or usage();
 
@@ -118,40 +119,42 @@ sub build_section_map {
 
 	print STDERR "Fetching Catechism sections...\n";
 
-	# Build list of all possible HTML files based on hex naming
-	# Files are named __P1.HTM, __P2.HTM... __P9.HTM, __PA.HTM... __PF.HTM, __P10.HTM, etc.
+	# Build list of all possible HTML files from base36 naming
 	my @filenames;
-	for my $i (1..1000) {
-		my $hex = sprintf("%X", $i);
-		push @filenames, "__P$hex.HTM";
+	my $total_files = decode_base36('AE');
+	for my $i (1..$total_files) {
+		my $b36 = encode_base36($i);
+		push @filenames, "__P$b36.HTM";
 	}
 
 	my $count = 0;
 	my $consecutive_404s = 0;
 	foreach my $filename (@filenames) {
 		my $url = "$base_url/$filename";
+retry_get:
 		my $response = $ua->get($url);
 
 		unless($response->is_success) {
-			# Count consecutive 404s, stop after too many
 			$consecutive_404s++;
-			next if $consecutive_404s < 10;  # Allow up to 9 consecutive 404s
-			last;
+			goto retry_get if $consecutive_404s < 3;
+
+			print STDERR "\n404 response on '$url'.\n";
+			exit 1;
 		}
 
-		$consecutive_404s = 0;  # Reset counter on success
+		$consecutive_404s = 0;
+
 		my $content = $response->content;
-
-		# Extract all section numbers
 		my @sections = extract_section_numbers($content);
-
 		foreach my $section (@sections) {
 			$section_map{$section} = $filename;
-			$count++;
 		}
 
+		$count++;
+
 		# Print progress
-		print STDERR "." if(scalar(keys %section_map) % 50 == 0);
+		my $progress = $count * 100 / $total_files;
+		print STDERR "\r$progress%";
 	}
 
 	print STDERR "\n";
