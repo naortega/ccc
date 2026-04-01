@@ -168,19 +168,12 @@ sub extract_section_numbers {
 	my ($html) = @_;
 	my @sections;
 
-	# Look for section numbers that appear after a <p> tag
-	# Windows line endings (\r\n) are used in the HTML
-	# Example: <p class=MsoNormal>199\r\n&quot;I believe in God...
-	while ($html =~ /<p[^>]*>(\d{1,4})[\r\n]+/g) {
-		my $num = $1;
-		# Only capture numbers in the valid CCC range (1-2865)
-		push @sections, $num if $num >= 1 && $num <= 3000;
+	# Find section header numbers with Windows lines
+	while($html =~ /\r\n<[p|P] class=MsoNormal[^>]*>(<i[^>]*>)?(\d{1,4})/g) {
+		push @sections, $2;
 	}
 
-	# Remove duplicates and return sorted
-	my %seen;
-	my @unique = grep { !$seen{$_}++ } @sections;
-	return sort {$a <=> $b} @unique;
+	return @sections;
 }
 
 sub fetch_and_display_section {
