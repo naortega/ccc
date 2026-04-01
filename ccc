@@ -33,19 +33,24 @@ use Math::Base36 ':all';
 
 my $VERSION = '0.1';
 my $PROG_NAME = 'ccc';
-my $arg = shift or usage();
+my $arg = shift;
 
-if($arg eq '--help' || $arg eq '-h') {
-	usage();
+unless(defined($arg)) {
+	print STDERR "No arguments given.\n\n";
+	print_usage();
+	exit 1;
+} elsif($arg eq '--help' || $arg eq '-h') {
+	print_help();
+	exit;
 } elsif($arg eq '-l' || $arg eq '--load-cache') {
 	my $cache_dir = get_xdg_cache_dir();
 	make_path($cache_dir) unless -d $cache_dir;
 	my $cache_file = File::Spec->catfile($cache_dir, 'section_map.json');
 	build_section_map($cache_file);
-	exit 0;
+	exit;
 } elsif($arg eq '-v' || $arg eq '--version') {
 	print "$PROG_NAME v$VERSION\n";
-	exit 0
+	exit;
 }
 
 my ($start_section, $end_section);
@@ -92,17 +97,22 @@ unless($found_any) {
 	exit 1;
 }
 
-sub usage {
-	print STDERR "Usage: ccc [OPTIONS] [section_number|range]\n";
-	print STDERR "Options:\n";
-	print STDERR "  -l, --load-cache  Build the section cache from Vatican server\n";
-	print STDERR "  -h, --help        Show this help message\n";
-	print STDERR "  -v, --version     Show version information\n";
-	print STDERR "Examples:\n";
-	print STDERR "  ccc -l               # Build cache\n";
-	print STDERR "  ccc 270              # Single section\n";
-	print STDERR "  ccc 1691-1698        # Range of sections\n";
-	exit 1;
+sub print_usage {
+	print "Usage:\n";
+	print "  ccc <section|range>\n";
+	print "  ccc [OPTION]\n";
+}
+
+sub print_help {
+	print_usage();
+	print "\nOptions:\n";
+	print "  -l, --load-cache  Build the section cache from Vatican server\n";
+	print "  -h, --help        Show this help message\n";
+	print "  -v, --version     Show version information\n";
+	print "\nExamples:\n";
+	print "  ccc -l               # Build cache\n";
+	print "  ccc 270              # Single section\n";
+	print "  ccc 1691-1698        # Range of sections\n";
 }
 
 sub load_cache {
