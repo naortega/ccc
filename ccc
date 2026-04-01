@@ -55,7 +55,7 @@ if($arg =~ /^(\d+)-(\d+)$/) {
 } elsif($arg =~ /^\d+$/) {
 	$start_section = $end_section = $arg;
 } else {
-	print STDERR "Error: Invalid section format. Use a number (e.g., 270) or range (e.g., 1691-1698)\n";
+	print STDERR "Error: Invalid section format. Use a number (e.g. 270) or range (e.g. 1691-1698)\n";
 	exit 1;
 }
 
