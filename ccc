@@ -31,6 +31,8 @@ use File::HomeDir;
 use File::Path qw(make_path);
 use Math::Base36 ':all';
 
+my $VERSION = '0.1';
+my $PROG_NAME = 'ccc';
 my $arg = shift or usage();
 
 if($arg eq '--help' || $arg eq '-h') {
@@ -41,9 +43,11 @@ if($arg eq '--help' || $arg eq '-h') {
 	my $cache_file = File::Spec->catfile($cache_dir, 'section_map.json');
 	build_section_map($cache_file);
 	exit 0;
+} elsif($arg eq '-v' || $arg eq '--version') {
+	print "$PROG_NAME v$VERSION\n";
+	exit 0
 }
 
-# Parse argument - can be single number or range (e.g., "1691-1698")
 my ($start_section, $end_section);
 if($arg =~ /^(\d+)-(\d+)$/) {
 	$start_section = $1;
@@ -93,6 +97,7 @@ sub usage {
 	print STDERR "Options:\n";
 	print STDERR "  -l, --load-cache  Build the section cache from Vatican server\n";
 	print STDERR "  -h, --help        Show this help message\n";
+	print STDERR "  -v, --version     Show version information\n";
 	print STDERR "Examples:\n";
 	print STDERR "  ccc -l               # Build cache\n";
 	print STDERR "  ccc 270              # Single section\n";
