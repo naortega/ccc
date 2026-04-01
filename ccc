@@ -35,6 +35,12 @@ my $arg = shift or usage();
 
 if($arg eq '--help' || $arg eq '-h') {
 	usage();
+} elsif($arg eq '-l' || $arg eq '--load-cache') {
+	my $cache_dir = get_xdg_cache_dir();
+	make_path($cache_dir) unless -d $cache_dir;
+	my $cache_file = File::Spec->catfile($cache_dir, 'section_map.json');
+	build_section_map($cache_file);
+	exit 0;
 }
 
 # Parse argument - can be single number or range (e.g., "1691-1698")
@@ -57,12 +63,10 @@ my $cache_dir = get_xdg_cache_dir();
 make_path($cache_dir) unless -d $cache_dir;
 
 my $cache_file = File::Spec->catfile($cache_dir, 'section_map.json');
-
 my $section_map = load_cache($cache_file);
-
 unless(scalar keys %$section_map) {
-	print STDERR "Building cache of Catechism sections...\n";
-	$section_map = build_section_map($cache_file);
+	print STDERR "No cache available. Run with the '-l' or '--load-cache' option to build it first.\n";
+	exit 1;
 }
 
 # Fetch and display requested sections
@@ -85,10 +89,14 @@ unless($found_any) {
 }
 
 sub usage {
-	print STDERR "Usage: ccc <section_number|range>\n";
+	print STDERR "Usage: ccc [OPTIONS] [section_number|range]\n";
+	print STDERR "Options:\n";
+	print STDERR "  -l, --load-cache  Build the section cache from Vatican server\n";
+	print STDERR "  -h, --help        Show this help message\n";
 	print STDERR "Examples:\n";
-	print STDERR "  ccc 270          # Single section\n";
-	print STDERR "  ccc 1691-1698    # Range of sections\n";
+	print STDERR "  ccc -l               # Build cache\n";
+	print STDERR "  ccc 270              # Single section\n";
+	print STDERR "  ccc 1691-1698        # Range of sections\n";
 	exit 1;
 }
 
