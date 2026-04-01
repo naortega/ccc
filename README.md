@@ -1,12 +1,33 @@
 # Catechism CLI (ccc)
 
 A command-line tool for querying sections of the Catechism of the Catholic
-Church by section number.
+Church from the Vatican's website by section number.
 
 ## Usage
 
+Before using `ccc` you must first load a cache of where each section is located
+on the web.
+
 ```bash
-ccc <section_number|range>
+ccc --load-cache
+# or
+ccc -l
+```
+
+Once loaded you can query any particular section by simply using the section
+number.
+
+```console
+$ ccc 241
+241 For this reason the apostles confess Jesus to be the Word: "In the beginning was the Word, and the Word was with God, and the Word was God"; as "the image of the invisible God"; as the "radiance of the glory of God and the very stamp of his nature".65
+```
+
+Alternatively you can also specify a range of sections to query.
+
+```console
+$ ccc 232-233
+232 Christians are baptized "in the name of the Father and of the Son and of the Holy Spirit"53 Before receiving the sacrament, they respond to a three-part question when asked to confess the Father, the Son and the Spirit: "I do." "The faith of all Christians rests on the Trinity."54
+233 Christians are baptized in the name of the Father and of the Son and of the Holy Spirit: not in their names,55 for there is only one God, the almighty Father, his only Son and the Holy Spirit: the Most Holy Trinity.
 ```
 
 ## Dependencies
