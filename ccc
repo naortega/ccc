@@ -240,7 +240,7 @@ sub extract_section_content {
 		# Add line breaks for readability
 		$content =~ s/([.!?])\s+(?=[A-Z])/\n\n/g;
 
-		return "\n[Section $section_num]\n\n" . $content . "\n";
+		return "\033[1m$section_num\033[0m $content\n";
 	}
 
 	return undef;
