@@ -32,8 +32,7 @@ $ ccc 232-233
 
 ## Dependencies
 
-The script requires the following Perl modules (all included in standard Perl
-distributions):
+The script requires the following Perl modules:
 
 - `LWP::UserAgent` - For HTTP requests
 - `JSON::PP` - For JSON parsing
@@ -41,6 +40,9 @@ distributions):
 - `File::HomeDir` - For home directory detection
 - `File::Path` - For creating cache directory structures
 - `Math::Base36` - For calculating the name of the HTML files
+
+The `Math::Base36` module is not a part of standard Perl distribuitions, but can
+be installed with [cpan](https://www.cpan.org/modules/INSTALL.html).
 
 ## Licensing
 
