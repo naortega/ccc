@@ -192,7 +192,7 @@ sub extract_section_numbers {
 	my @sections;
 
 	# Find section header numbers with Windows lines
-	while($html =~ /\r\n<[pP] class=MsoNormal[^>]*>(<i[^>]*>)?(\d{1,4})/g) {
+	while($html =~ /\r\n<[pP] class=MsoNormal[^>]*>(<i[^>]*>)?(\d{1,4})\s+/g) {
 		my $section_num = $2;
 		push @sections, $section_num;
 	}
