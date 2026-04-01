@@ -200,11 +200,11 @@ sub extract_section_numbers {
 }
 
 sub fetch_and_display_section {
-	my ($section_num, $section_info) = @_;
+	my ($section_num, $section_page) = @_;
 
 	my $ua = LWP::UserAgent->new(timeout => 10);
 	my $base_url = 'https://www.vatican.va/archive/ENG0015';
-	my $url = "$base_url/$section_info";
+	my $url = "$base_url/$section_page";
 
 	my $response = $ua->get($url);
 
