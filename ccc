@@ -214,19 +214,10 @@ sub fetch_and_display_section {
 	}
 
 	my $content = $response->content;
-
-	# Extract the section content
-	my $section_content = extract_section_content($content, $section_num);
-
-	if($section_content) {
-		print $section_content;
-	} else {
-		print STDERR "Error: Could not parse section $section_num\n";
-		exit 1;
-	}
+	print_section($content, $section_num);
 }
 
-sub extract_section_content {
+sub print_section {
 	my ($html, $section_num) = @_;
 
 	# Convert HTML entities
@@ -255,10 +246,11 @@ sub extract_section_content {
 		# Add line breaks for readability
 		$content =~ s/([.!?])\s+(?=[A-Z])/\n\n/g;
 
-		return "\033[1m$section_num\033[0m $content\n";
+		print "\033[1m$section_num\033[0m $content\n";
+	} else {
+		print STDERR "Error: Could not parse section $section_num\n";
+		exit 1;
 	}
-
-	return undef;
 }
 
 sub get_xdg_cache_dir {
